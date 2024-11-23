@@ -1,6 +1,8 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { calculateInterfaceId } from "./utils/calculateInterfaceId";
+
 
 describe("ContractManager", function () {
   async function deployContractManagerFixture() {
@@ -28,6 +30,40 @@ describe("ContractManager", function () {
       expect(await contractManager.hasRole(ADMIN_ROLE, admin.address)).to.be.true;
     });
   });
+
+  describe("Interface Compliance", function () {
+    it("Should support the IContractManager interface", async function () {
+      const { contractManager } = await loadFixture(deployContractManagerFixture);
+
+      const functions = [
+        "addContract(address,string)",
+        "addContracts(address[],string[])",
+        "updateDescription(address,string)",
+        "removeContract(address)",
+        "getDescription(address)"
+      ];
+      const interfaceId = await calculateInterfaceId(functions);
+
+      expect(await contractManager.supportsInterface(interfaceId)).to.be.true;
+    });
+
+    it("Should support the AccessControl interface", async function () {
+      const { contractManager } = await loadFixture(deployContractManagerFixture);
+
+      // AccessControl interfaceId: OpenZeppelin-defined
+      const AccessControlInterfaceId = "0x7965db0b";
+
+      expect(await contractManager.supportsInterface(AccessControlInterfaceId)).to.be.true;
+    });
+
+    it("Should return false for unsupported interfaces", async function () {
+      const { contractManager } = await loadFixture(deployContractManagerFixture);
+
+      const UnsupportedInterfaceId = "0xffffffff";
+      expect(await contractManager.supportsInterface(UnsupportedInterfaceId)).to.be.false;
+    });
+  });
+
 
   describe("Add Contract", function () {
     it("Should allow an admin to add a contract", async function () {
