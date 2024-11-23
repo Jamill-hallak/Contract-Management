@@ -93,7 +93,7 @@ describe("ContractManager", function () {
 
       await expect(
         contractManager.connect(admin).addContract(ethers.ZeroAddress, "Invalid Address")
-      ).to.be.revertedWith("Invalid address");
+      ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
     });
 
     it("Should revert if the contract already exists", async function () {
@@ -106,7 +106,7 @@ describe("ContractManager", function () {
 
       await expect(
         contractManager.connect(admin).addContract(contractAddress, "Duplicate Contract")
-      ).to.be.revertedWith("Contract already exists");
+      ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
   });
 
@@ -157,7 +157,8 @@ describe("ContractManager", function () {
 
       await expect(
         contractManager.connect(admin).addContracts(contractAddresses, descriptions)
-      ).to.be.revertedWith("Mismatched input lengths");
+      ).to.be.revertedWithCustomError(contractManager, "MismatchedInputLengths");
+
     });
 
     it("Should revert if any contract address is zero", async function () {
@@ -171,7 +172,7 @@ describe("ContractManager", function () {
 
       await expect(
         contractManager.connect(admin).addContracts(contractAddresses, descriptions)
-      ).to.be.revertedWith("Invalid address");
+      ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
     });
 
     it("Should revert if any contract in the batch already exists", async function () {
@@ -187,7 +188,7 @@ describe("ContractManager", function () {
 
       await expect(
         contractManager.connect(admin).addContracts(contractAddresses, descriptions)
-      ).to.be.revertedWith("Contract already exists");
+      ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
 });
 
@@ -226,7 +227,8 @@ describe("ContractManager", function () {
 
       await expect(
         contractManager.connect(admin).updateDescription(contractAddress, "New Description")
-      ).to.be.revertedWith("Contract does not exist");
+      ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
+
     });
   });
 
@@ -240,9 +242,9 @@ describe("ContractManager", function () {
       await contractManager.connect(admin).addContract(contractAddress, description);
       await contractManager.connect(admin).removeContract(contractAddress);
 
-      await expect(contractManager.getDescription(contractAddress)).to.be.revertedWith(
-        "Contract does not exist"
-      );
+      await expect(contractManager.getDescription(contractAddress)
+    ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
+
     });
 
     it("Should emit a ContractRemoved event when a contract is removed", async function () {
@@ -263,9 +265,9 @@ describe("ContractManager", function () {
 
       const contractAddress = ethers.Wallet.createRandom().address;
 
-      await expect(contractManager.connect(admin).removeContract(contractAddress)).to.be.revertedWith(
-        "Contract does not exist"
-      );
+      await expect(contractManager.connect(admin).removeContract(contractAddress)
+    ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
+
     });
   });
   

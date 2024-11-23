@@ -15,6 +15,12 @@ contract ContractManager is IContractManager, AccessControl {
     event ContractUpdated(address indexed contractAddress, string newDescription);
     event ContractRemoved(address indexed contractAddress);
 
+    // Custom Errors
+    error InvalidAddress();
+    error ContractAlreadyExists();
+    error ContractDoesNotExist();
+    error MismatchedInputLengths();
+
     /// @notice Constructor assigns admin roles and sets the trusted forwarder
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -23,13 +29,12 @@ contract ContractManager is IContractManager, AccessControl {
 
     /// @inheritdoc IContractManager
     function addContract(address contractAddress, string calldata description) external override onlyRole(ADMIN_ROLE) {
-        require(contractAddress != address(0), "Invalid address");
-        require(bytes(descriptions[contractAddress]).length == 0, "Contract already exists");
+        if (contractAddress == address(0)) revert InvalidAddress();
+        if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
 
         descriptions[contractAddress] = description;
         emit ContractAdded(contractAddress, description);
     }
-
 
     /// @notice Adds multiple contracts in a single transaction
     /// @param contractAddresses The list of contract addresses
@@ -38,14 +43,14 @@ contract ContractManager is IContractManager, AccessControl {
         external
         onlyRole(ADMIN_ROLE)
     {
-        require(contractAddresses.length == descriptionsList.length, "Mismatched input lengths");
+        if (contractAddresses.length != descriptionsList.length) revert MismatchedInputLengths();
 
         for (uint256 i = 0; i < contractAddresses.length; i++) {
             address contractAddress = contractAddresses[i];
             string calldata description = descriptionsList[i];
 
-            require(contractAddress != address(0), "Invalid address");
-            require(bytes(descriptions[contractAddress]).length == 0, "Contract already exists");
+            if (contractAddress == address(0)) revert InvalidAddress();
+            if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
 
             descriptions[contractAddress] = description;
             emit ContractAdded(contractAddress, description);
@@ -58,7 +63,7 @@ contract ContractManager is IContractManager, AccessControl {
         override
         onlyRole(ADMIN_ROLE)
     {
-        require(bytes(descriptions[contractAddress]).length > 0, "Contract does not exist");
+        if (bytes(descriptions[contractAddress]).length == 0) revert ContractDoesNotExist();
 
         descriptions[contractAddress] = newDescription;
         emit ContractUpdated(contractAddress, newDescription);
@@ -66,7 +71,7 @@ contract ContractManager is IContractManager, AccessControl {
 
     /// @inheritdoc IContractManager
     function removeContract(address contractAddress) external override onlyRole(ADMIN_ROLE) {
-        require(bytes(descriptions[contractAddress]).length > 0, "Contract does not exist");
+        if (bytes(descriptions[contractAddress]).length == 0) revert ContractDoesNotExist();
 
         delete descriptions[contractAddress];
         emit ContractRemoved(contractAddress);
@@ -74,7 +79,7 @@ contract ContractManager is IContractManager, AccessControl {
 
     /// @inheritdoc IContractManager
     function getDescription(address contractAddress) external view override returns (string memory) {
-        require(bytes(descriptions[contractAddress]).length > 0, "Contract does not exist");
+        if (bytes(descriptions[contractAddress]).length == 0) revert ContractDoesNotExist();
         return descriptions[contractAddress];
     }
 
@@ -82,8 +87,4 @@ contract ContractManager is IContractManager, AccessControl {
     function supportsInterface(bytes4 interfaceId) public view override(AccessControl) returns (bool) {
         return interfaceId == type(IContractManager).interfaceId || super.supportsInterface(interfaceId);
     }
-
-    
-
-   
 }
