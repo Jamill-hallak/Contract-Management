@@ -6,13 +6,13 @@ import { calculateInterfaceId } from "./utils/calculateInterfaceId";
 
 describe("ContractManager", function () {
   async function deployContractManagerFixture() {
-    const [deployer, admin, user] = await ethers.getSigners();
+    const [deployer, admin, user,otherUser] = await ethers.getSigners();
 
     const ContractManager = await ethers.getContractFactory("ContractManager");
     const contractManager = await ContractManager.deploy(admin.address);
     //await contractManager.deployed();
 
-    return { contractManager, deployer, admin, user };
+    return { contractManager, deployer, admin, user,otherUser };
   }
 
   describe("Deployment", function () {
@@ -268,4 +268,82 @@ describe("ContractManager", function () {
       );
     });
   });
+  
+  describe("Role Management", function () {
+    it("Should allow an admin to grant ADMIN_ROLE to a user", async function () {
+      const { contractManager, deployer, user } = await loadFixture(deployContractManagerFixture);
+  
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+  
+      // Use the deployer (has DEFAULT_ADMIN_ROLE) to grant ADMIN_ROLE
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, user.address);
+      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.true;
+    });
+  
+    it("Should allow an admin to revoke ADMIN_ROLE from a user", async function () {
+      const { contractManager, deployer, user } = await loadFixture(deployContractManagerFixture);
+  
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+  
+      // Grant and revoke ADMIN_ROLE
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, user.address);
+      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, user.address);
+      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.false;
+    });
+  
+    it("Should revert if a non-admin tries to grant a role", async function () {
+      const { contractManager, user, otherUser } = await loadFixture(deployContractManagerFixture);
+    
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+    
+      await expect(
+        contractManager.connect(user).grantRole(ADMIN_ROLE, otherUser.address)
+      ).to.be.revertedWithCustomError(
+        contractManager,
+        "AccessControlUnauthorizedAccount"
+      ).withArgs(user.address, ethers.ZeroHash); // `DEFAULT_ADMIN_ROLE` is the required role
+    });
+    
+  
+    it("Should revert if a non-admin tries to revoke a role", async function () {
+      const { contractManager, deployer, user } = await loadFixture(deployContractManagerFixture);
+    
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+    
+      // Grant ADMIN_ROLE to the user
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, user.address);
+    
+      await expect(
+        contractManager.connect(user).revokeRole(ADMIN_ROLE, deployer.address)
+      ).to.be.revertedWithCustomError(
+        contractManager,
+        "AccessControlUnauthorizedAccount"
+      ).withArgs(user.address, ethers.ZeroHash); // `DEFAULT_ADMIN_ROLE` is the required role
+    });
+    
+  
+    it("Should only allow an admin to add and remove multiple users with ADMIN_ROLE", async function () {
+      const { contractManager, deployer, user, otherUser } = await loadFixture(deployContractManagerFixture);
+  
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+  
+      // Add multiple users with ADMIN_ROLE
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, user.address);
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, otherUser.address);
+  
+      // Verify both users now have ADMIN_ROLE
+      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.true;
+      expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.true;
+  
+      // Revoke ADMIN_ROLE from both users
+      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, user.address);
+      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, otherUser.address);
+  
+      // Verify neither user has ADMIN_ROLE
+      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.false;
+      expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.false;
+    });
+  });
+  
+  
 });
