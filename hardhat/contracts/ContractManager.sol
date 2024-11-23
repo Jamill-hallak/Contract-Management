@@ -28,12 +28,13 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
         _grantRole(ADMIN_ROLE, admin);
     }
 
-    /// @notice Validates that the address is a contract and not zero
-    /// @param addr The address to validate
-    function validateContract(address addr) internal view {
-        if (addr == address(0)) revert InvalidAddress();
-        if (addr.code.length == 0) revert InvalidAddress(); // Not a contract
-    }
+    //Optimize gas by replacing validateContract function with inline conditional checks
+
+
+
+
+
+
 
     /// @inheritdoc IContractManager
     function addContract(address contractAddress, string calldata description)
@@ -42,7 +43,7 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
         onlyRole(ADMIN_ROLE)
         nonReentrant
     {
-        validateContract(contractAddress);
+        if (contractAddress.code.length == 0) revert InvalidAddress(); // Not a contract
         if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
 
         descriptions[contractAddress] = description;
@@ -63,7 +64,8 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
             address contractAddress = contractAddresses[i];
             string calldata description = descriptionsList[i];
 
-            validateContract(contractAddress);
+            if (contractAddress.code.length == 0) revert InvalidAddress(); // Not a contract
+
             if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
 
             descriptions[contractAddress] = description;

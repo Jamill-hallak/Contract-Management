@@ -21,6 +21,8 @@ describe("ContractManager", function () {
   }
 
   describe("Deployment", function () {
+
+
     it("Should assign DEFAULT_ADMIN_ROLE to the deployer", async function () {
       const { contractManager, deployer } = await loadFixture(deployContractManagerFixture);
 
@@ -34,6 +36,8 @@ describe("ContractManager", function () {
       const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
       expect(await contractManager.hasRole(ADMIN_ROLE, admin.address)).to.be.true;
     });
+
+    
   });
 
   describe("Interface Compliance", function () {
@@ -454,6 +458,8 @@ describe("ContractManager", function () {
       expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.false;
       expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.false;
     });
+
+    
   });
   
   
