@@ -12,7 +12,12 @@ describe("ContractManager", function () {
     const contractManager = await ContractManager.deploy(admin.address);
     await contractManager.waitForDeployment();
 
-    return { contractManager, deployer, admin, user,otherUser };
+    // Deploy a MockContract for testing
+    const MockContract = await ethers.getContractFactory("MockContract");
+    const mockContract = await MockContract.deploy();
+    await mockContract.waitForDeployment();
+
+    return { contractManager,mockContract, deployer, admin, user,otherUser };
   }
 
   describe("Deployment", function () {
@@ -67,25 +72,25 @@ describe("ContractManager", function () {
 
   describe("Add Contract", function () {
     it("Should allow an admin to add a contract", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
+      // const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Test Contract";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).addContract(mockContract, description);
 
-      expect(await contractManager.getDescription(contractAddress)).to.equal(description);
+      expect(await contractManager.getDescription(mockContract)).to.equal(description);
     });
 
     it("Should emit a ContractAdded event when a contract is added", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
+      // const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Test Contract";
 
-      await expect(contractManager.connect(admin).addContract(contractAddress, description))
+      await expect(contractManager.connect(admin).addContract(mockContract, description))
         .to.emit(contractManager, "ContractAdded")
-        .withArgs(contractAddress, description);
+        .withArgs(mockContract, description);
     });
 
     it("Should revert if the contract address is zero", async function () {
@@ -97,27 +102,32 @@ describe("ContractManager", function () {
     });
 
     it("Should revert if the contract already exists", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
+      // const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Test Contract";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).addContract(mockContract, description);
 
       await expect(
-        contractManager.connect(admin).addContract(contractAddress, "Duplicate Contract")
+        contractManager.connect(admin).addContract(mockContract, "Duplicate Contract")
       ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
   });
 
 
   describe("Batch Add Contracts", function () {
+    
     it("Should allow an admin to add multiple contracts in a batch", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
+      // Deploy a MockContract for testing
+    const MockContract2 = await ethers.getContractFactory("MockContract");
+    const mockContract2 = await MockContract2.deploy();
+    await mockContract2.waitForDeployment();
       const contractAddresses = [
-        ethers.Wallet.createRandom().address,
-        ethers.Wallet.createRandom().address,
+        mockContract,
+        mockContract2,
       ];
       const descriptions = ["Contract 1", "Contract 2"];
 
@@ -130,12 +140,16 @@ describe("ContractManager", function () {
     });
 
     it("Should emit ContractAdded events for each added contract", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddresses = [
-        ethers.Wallet.createRandom().address,
-        ethers.Wallet.createRandom().address,
-      ];
+      // Deploy a MockContract for testing
+      const MockContract2 = await ethers.getContractFactory("MockContract");
+      const mockContract2 = await MockContract2.deploy();
+      await mockContract2.waitForDeployment();
+        const contractAddresses = [
+          mockContract,
+          mockContract2,
+        ];
       const descriptions = ["Contract 1", "Contract 2"];
 
       const tx = await contractManager.connect(admin).addContracts(contractAddresses, descriptions);
@@ -162,10 +176,10 @@ describe("ContractManager", function () {
     });
 
     it("Should revert if any contract address is zero", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
       const contractAddresses = [
-        ethers.Wallet.createRandom().address,
+        mockContract,
         ethers.ZeroAddress,
       ];
       const descriptions = ["Contract 1", "Invalid Address"];
@@ -176,14 +190,14 @@ describe("ContractManager", function () {
     });
 
     it("Should revert if any contract in the batch already exists", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
+      
       const description = "Existing Contract";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).addContract(mockContract, description);
 
-      const contractAddresses = [contractAddress, ethers.Wallet.createRandom().address];
+      const contractAddresses = [mockContract, mockContract];
       const descriptions = ["Duplicate Contract", "New Contract"];
 
       await expect(
@@ -194,30 +208,28 @@ describe("ContractManager", function () {
 
   describe("Update Description", function () {
     it("Should allow an admin to update a contract description", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Initial Description";
       const newDescription = "Updated Description";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
-      await contractManager.connect(admin).updateDescription(contractAddress, newDescription);
+      await contractManager.connect(admin).addContract(mockContract, description);
+      await contractManager.connect(admin).updateDescription(mockContract, newDescription);
 
-      expect(await contractManager.getDescription(contractAddress)).to.equal(newDescription);
+      expect(await contractManager.getDescription(mockContract)).to.equal(newDescription);
     });
 
     it("Should emit a ContractUpdated event when a description is updated", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Initial Description";
       const newDescription = "Updated Description";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).addContract(mockContract, description);
 
-      await expect(contractManager.connect(admin).updateDescription(contractAddress, newDescription))
+      await expect(contractManager.connect(admin).updateDescription(mockContract, newDescription))
         .to.emit(contractManager, "ContractUpdated")
-        .withArgs(contractAddress, newDescription);
+        .withArgs(mockContract, newDescription);
     });
 
     it("Should revert if the contract does not exist", async function () {
@@ -234,53 +246,50 @@ describe("ContractManager", function () {
 
   describe("Remove Contract", function () {
     it("Should allow an admin to remove a contract", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
+      
       const description = "Test Contract";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
-      await contractManager.connect(admin).removeContract(contractAddress);
+      await contractManager.connect(admin).addContract(mockContract, description);
+      await contractManager.connect(admin).removeContract(mockContract);
 
-      await expect(contractManager.getDescription(contractAddress)
+      await expect(contractManager.getDescription(mockContract)
     ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
 
     });
 
     it("Should emit a ContractRemoved event when a contract is removed", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager, mockContract,admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Test Contract";
 
-      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).addContract(mockContract, description);
 
-      await expect(contractManager.connect(admin).removeContract(contractAddress))
+      await expect(contractManager.connect(admin).removeContract(mockContract))
         .to.emit(contractManager, "ContractRemoved")
-        .withArgs(contractAddress);
+        .withArgs(mockContract);
     });
 
     it("Should revert if the contract does not exist", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
-      const contractAddress = ethers.Wallet.createRandom().address;
 
-      await expect(contractManager.connect(admin).removeContract(contractAddress)
+      await expect(contractManager.connect(admin).removeContract(mockContract)
     ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
 
     });
     it("Should revert if a non-admin tries to remove a contract", async function () {
-      const { contractManager, user, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, user, admin } = await loadFixture(deployContractManagerFixture);
     
-      const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Test Contract";
     
       // Add a contract as admin
-      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).addContract(mockContract, description);
     
       // Attempt to remove the contract as a non-admin
       const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
-      await expect(contractManager.connect(user).removeContract(contractAddress))
+      await expect(contractManager.connect(user).removeContract(mockContract))
         .to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
         .withArgs(user.address, ADMIN_ROLE); // Pass the account and the required role
     });
@@ -295,17 +304,16 @@ describe("ContractManager", function () {
       );
     });
     it("Should clear the state after removing a contract", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
   
-      const contractAddress = ethers.Wallet.createRandom().address;
       const description = "Test Contract";
   
-      await contractManager.connect(admin).addContract(contractAddress, description);
-      await contractManager.connect(admin).removeContract(contractAddress);
+      await contractManager.connect(admin).addContract(mockContract, description);
+      await contractManager.connect(admin).removeContract(mockContract);
   
       // Ensure state is cleared
       const descriptionExists = await contractManager
-        .getDescription(contractAddress)
+        .getDescription(mockContract)
         .catch(() => false); // Catch revert and return false
       expect(descriptionExists).to.be.false;
     });

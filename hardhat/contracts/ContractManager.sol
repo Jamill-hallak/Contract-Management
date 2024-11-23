@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 import "./IContractManager.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title ContractManager
 /// @notice Manages storage, updating, and removal of contract addresses and descriptions
-contract ContractManager is IContractManager, AccessControl {
+contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     mapping(address => string) private descriptions;
@@ -27,9 +28,21 @@ contract ContractManager is IContractManager, AccessControl {
         _grantRole(ADMIN_ROLE, admin);
     }
 
+    /// @notice Validates that the address is a contract and not zero
+    /// @param addr The address to validate
+    function validateContract(address addr) internal view {
+        if (addr == address(0)) revert InvalidAddress();
+        if (addr.code.length == 0) revert InvalidAddress(); // Not a contract
+    }
+
     /// @inheritdoc IContractManager
-    function addContract(address contractAddress, string calldata description) external override onlyRole(ADMIN_ROLE) {
-        if (contractAddress == address(0)) revert InvalidAddress();
+    function addContract(address contractAddress, string calldata description)
+        external
+        override
+        onlyRole(ADMIN_ROLE)
+        nonReentrant
+    {
+        validateContract(contractAddress);
         if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
 
         descriptions[contractAddress] = description;
@@ -42,6 +55,7 @@ contract ContractManager is IContractManager, AccessControl {
     function addContracts(address[] calldata contractAddresses, string[] calldata descriptionsList)
         external
         onlyRole(ADMIN_ROLE)
+        nonReentrant
     {
         if (contractAddresses.length != descriptionsList.length) revert MismatchedInputLengths();
 
@@ -49,7 +63,7 @@ contract ContractManager is IContractManager, AccessControl {
             address contractAddress = contractAddresses[i];
             string calldata description = descriptionsList[i];
 
-            if (contractAddress == address(0)) revert InvalidAddress();
+            validateContract(contractAddress);
             if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
 
             descriptions[contractAddress] = description;
@@ -62,6 +76,7 @@ contract ContractManager is IContractManager, AccessControl {
         external
         override
         onlyRole(ADMIN_ROLE)
+        nonReentrant
     {
         if (bytes(descriptions[contractAddress]).length == 0) revert ContractDoesNotExist();
 
@@ -70,7 +85,7 @@ contract ContractManager is IContractManager, AccessControl {
     }
 
     /// @inheritdoc IContractManager
-    function removeContract(address contractAddress) external override onlyRole(ADMIN_ROLE) {
+    function removeContract(address contractAddress) external override onlyRole(ADMIN_ROLE) nonReentrant {
         if (bytes(descriptions[contractAddress]).length == 0) revert ContractDoesNotExist();
 
         delete descriptions[contractAddress];
