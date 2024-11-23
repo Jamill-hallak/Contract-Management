@@ -113,6 +113,21 @@ describe("ContractManager", function () {
         contractManager.connect(admin).addContract(mockContract, "Duplicate Contract")
       ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
+
+    it("Should allow re-adding a contract after removal", async function () {
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
+    
+      const description = "Test Contract";
+    
+      // Add and remove the contract
+      await contractManager.connect(admin).addContract(mockContract, description);
+      await contractManager.connect(admin).removeContract(mockContract);
+    
+      // Re-add the same contract
+      await contractManager.connect(admin).addContract(mockContract, "New Description");
+      expect(await contractManager.getDescription(mockContract)).to.equal("New Description");
+    });
+    
   });
 
 
@@ -204,6 +219,51 @@ describe("ContractManager", function () {
         contractManager.connect(admin).addContracts(contractAddresses, descriptions)
       ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
+
+    it("Should compare gas usage for single vs batch additions", async function () {
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
+    
+      // Deploy mock contracts for testing
+      const MockContract1 = await ethers.getContractFactory("MockContract");
+      const mockContract1 = await MockContract1.deploy();
+      await mockContract1.waitForDeployment();
+      
+    
+      const contractAddresses = [
+         mockContract,
+         mockContract1
+      ];
+      const descriptions = ["Contract 1", "Contract 2"];
+    
+      // Single additions (add two contracts one by one)
+      const singleTx1 = await contractManager.connect(admin).addContract(contractAddresses[0], descriptions[0]);
+      const singleReceipt1 = await singleTx1.wait();
+      const singleGasUsed1 = singleReceipt1.gasUsed; // Gas used for Tx1
+
+    
+      const singleTx2 = await contractManager.connect(admin).addContract(contractAddresses[1], descriptions[1]);
+      const singleReceipt2 = await singleTx2.wait();
+      const singleGasUsed2 = singleReceipt2.gasUsed; // Gas used for Tx2
+
+      // Total gas used for single additions
+      const totalSingleGasUsed = singleGasUsed1+singleGasUsed2;
+      console.log("Total gas used for single additions:", totalSingleGasUsed.toString());
+    
+      // Remove the contracts one by one
+      await contractManager.connect(admin).removeContract(contractAddresses[0]);
+      await contractManager.connect(admin).removeContract(contractAddresses[1]);
+    
+      // Batch addition (add both contracts in a single transaction)
+      const batchTx = await contractManager.connect(admin).addContracts(contractAddresses, descriptions);
+      const batchReceipt = await batchTx.wait();
+    
+      console.log("Gas used for batch addition:", batchReceipt.gasUsed.toString());
+    
+      // Assertions for gas usage (optional)
+      expect(batchReceipt.gasUsed).to.be.below(totalSingleGasUsed, "Batch addition should be more gas-efficient");
+    });
+    
+    
 });
 
   describe("Update Description", function () {
