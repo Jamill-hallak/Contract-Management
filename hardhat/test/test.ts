@@ -96,6 +96,20 @@ describe("ContractManager", function () {
         .to.emit(contractManager, "ContractAdded")
         .withArgs(mockContract, description);
     });
+    it("Should allow re-adding a contract after removal", async function () {
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
+    
+      const description = "Test Contract";
+    
+      // Add and remove the contract
+      await contractManager.connect(admin).addContract(mockContract, description);
+      await contractManager.connect(admin).removeContract(mockContract);
+    
+      // Re-add the same contract
+      await contractManager.connect(admin).addContract(mockContract, "New Description");
+      expect(await contractManager.getDescription(mockContract)).to.equal("New Description");
+    });
+    
 
     it("Should revert if the contract address is zero", async function () {
       const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
@@ -127,20 +141,16 @@ describe("ContractManager", function () {
           contractManager.connect(admin).addContract(randomAddress, "Invalid Contract")
       ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
   });
+  it("Should revert if a non-admin tries to add a contract", async function () {
+    const { contractManager, mockContract, user } = await loadFixture(deployContractManagerFixture);
 
-    it("Should allow re-adding a contract after removal", async function () {
-      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
-    
-      const description = "Test Contract";
-    
-      // Add and remove the contract
-      await contractManager.connect(admin).addContract(mockContract, description);
-      await contractManager.connect(admin).removeContract(mockContract);
-    
-      // Re-add the same contract
-      await contractManager.connect(admin).addContract(mockContract, "New Description");
-      expect(await contractManager.getDescription(mockContract)).to.equal("New Description");
-    });
+    const description = "Unauthorized Contract";
+
+    await expect(
+      contractManager.connect(user).addContract(mockContract, description)
+    ).to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
+      .withArgs(user.address, ethers.id("ADMIN_ROLE"));
+  });
     
   });
 
@@ -191,6 +201,50 @@ describe("ContractManager", function () {
         .to.emit(contractManager, "ContractAdded")
         .withArgs(contractAddresses[1], descriptions[1]);
     });
+
+    it("Should compare gas usage for single vs batch additions", async function () {
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
+    
+      // Deploy mock contracts for testing
+      const MockContract1 = await ethers.getContractFactory("MockContract");
+      const mockContract1 = await MockContract1.deploy();
+      await mockContract1.waitForDeployment();
+      
+    
+      const contractAddresses = [
+         mockContract,
+         mockContract1
+      ];
+      const descriptions = ["Contract 1", "Contract 2"];
+    
+      // Single additions (add two contracts one by one)
+      const singleTx1 = await contractManager.connect(admin).addContract(contractAddresses[0], descriptions[0]);
+      const singleReceipt1 = await singleTx1.wait();
+      const singleGasUsed1 = singleReceipt1.gasUsed; // Gas used for Tx1
+
+    
+      const singleTx2 = await contractManager.connect(admin).addContract(contractAddresses[1], descriptions[1]);
+      const singleReceipt2 = await singleTx2.wait();
+      const singleGasUsed2 = singleReceipt2.gasUsed; // Gas used for Tx2
+
+      // Total gas used for single additions
+      const totalSingleGasUsed = singleGasUsed1+singleGasUsed2;
+      console.log("       Total gas used for single additions:", totalSingleGasUsed.toString());
+    
+      // Remove the contracts one by one
+      await contractManager.connect(admin).removeContract(contractAddresses[0]);
+      await contractManager.connect(admin).removeContract(contractAddresses[1]);
+    
+      // Batch addition (add both contracts in a single transaction)
+      const batchTx = await contractManager.connect(admin).addContracts(contractAddresses, descriptions);
+      const batchReceipt = await batchTx.wait();
+    
+      console.log("       Gas used for batch addition:", batchReceipt.gasUsed.toString());
+    
+      // Assertions for gas usage (optional)
+      expect(batchReceipt.gasUsed).to.be.below(totalSingleGasUsed, "Batch addition should be more gas-efficient");
+    });
+    
 
     it("Should revert if input lengths are mismatched", async function () {
       const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
@@ -248,51 +302,27 @@ describe("ContractManager", function () {
         contractManager.connect(admin).addContracts(contractAddresses, descriptions)
       ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
     });
+    it("Should revert if a non-admin tries to add multiple contracts in a batch", async function () {
+      const { contractManager, mockContract, user } = await loadFixture(deployContractManagerFixture);
 
-
-    it("Should compare gas usage for single vs batch additions", async function () {
-      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
-    
-      // Deploy mock contracts for testing
       const MockContract1 = await ethers.getContractFactory("MockContract");
       const mockContract1 = await MockContract1.deploy();
       await mockContract1.waitForDeployment();
-      
-    
+
       const contractAddresses = [
-         mockContract,
-         mockContract1
+        mockContract,
+        mockContract1
       ];
       const descriptions = ["Contract 1", "Contract 2"];
-    
-      // Single additions (add two contracts one by one)
-      const singleTx1 = await contractManager.connect(admin).addContract(contractAddresses[0], descriptions[0]);
-      const singleReceipt1 = await singleTx1.wait();
-      const singleGasUsed1 = singleReceipt1.gasUsed; // Gas used for Tx1
 
-    
-      const singleTx2 = await contractManager.connect(admin).addContract(contractAddresses[1], descriptions[1]);
-      const singleReceipt2 = await singleTx2.wait();
-      const singleGasUsed2 = singleReceipt2.gasUsed; // Gas used for Tx2
-
-      // Total gas used for single additions
-      const totalSingleGasUsed = singleGasUsed1+singleGasUsed2;
-      console.log("       Total gas used for single additions:", totalSingleGasUsed.toString());
-    
-      // Remove the contracts one by one
-      await contractManager.connect(admin).removeContract(contractAddresses[0]);
-      await contractManager.connect(admin).removeContract(contractAddresses[1]);
-    
-      // Batch addition (add both contracts in a single transaction)
-      const batchTx = await contractManager.connect(admin).addContracts(contractAddresses, descriptions);
-      const batchReceipt = await batchTx.wait();
-    
-      console.log("       Gas used for batch addition:", batchReceipt.gasUsed.toString());
-    
-      // Assertions for gas usage (optional)
-      expect(batchReceipt.gasUsed).to.be.below(totalSingleGasUsed, "Batch addition should be more gas-efficient");
+      await expect(
+        contractManager.connect(user).addContracts(contractAddresses, descriptions)
+      ).to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
+        .withArgs(user.address, ethers.id("ADMIN_ROLE"));
     });
-    
+
+
+   
     
 });
 
@@ -345,7 +375,7 @@ describe("ContractManager", function () {
       await expect(
         contractManager.connect(user).updateDescription(mockContract, newDescription)
       ).to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
-        .withArgs(user.address, ethers.id("ADMIN_ROLE")); // Pass the user and required role as args
+        .withArgs(user.address, ethers.id("ADMIN_ROLE"));
     });
   });
 
@@ -376,6 +406,20 @@ describe("ContractManager", function () {
         .withArgs(mockContract);
     });
 
+    it("Should clear the state after removing a contract", async function () {
+      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
+  
+      const description = "Test Contract";
+  
+      await contractManager.connect(admin).addContract(mockContract, description);
+      await contractManager.connect(admin).removeContract(mockContract);
+  
+      // Ensure state is cleared
+      const descriptionExists = await contractManager
+        .getDescription(mockContract)
+        .catch(() => false); // Catch revert and return false
+      expect(descriptionExists).to.be.false;
+    });
     it("Should revert if the contract does not exist", async function () {
       const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
 
@@ -383,6 +427,16 @@ describe("ContractManager", function () {
       await expect(contractManager.connect(admin).removeContract(mockContract)
     ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
 
+    });
+    
+    
+    it("Should revert if trying to remove a zero address", async function () {
+      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+  
+      await expect(contractManager.connect(admin).removeContract(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+        contractManager,
+        "ContractDoesNotExist"
+      );
     });
     it("Should revert if a non-admin tries to remove a contract", async function () {
       const { contractManager,mockContract, user, admin } = await loadFixture(deployContractManagerFixture);
@@ -398,32 +452,49 @@ describe("ContractManager", function () {
         .to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
         .withArgs(user.address, ADMIN_ROLE); 
     });
-    
-  
-    it("Should revert if trying to remove a zero address", async function () {
-      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
-  
-      await expect(contractManager.connect(admin).removeContract(ethers.ZeroAddress)).to.be.revertedWithCustomError(
-        contractManager,
-        "ContractDoesNotExist"
-      );
-    });
-    it("Should clear the state after removing a contract", async function () {
-      const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
-  
-      const description = "Test Contract";
-  
-      await contractManager.connect(admin).addContract(mockContract, description);
-      await contractManager.connect(admin).removeContract(mockContract);
-  
-      // Ensure state is cleared
-      const descriptionExists = await contractManager
-        .getDescription(mockContract)
-        .catch(() => false); // Catch revert and return false
-      expect(descriptionExists).to.be.false;
-    });
+   
   
   });
+
+
+  describe("Get Description", function () {
+
+    it("Should return the correct description for an existing contract", async function () {
+        const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+        const description = "Existing Contract Description";
+        await contractManager.connect(admin).addContract(mockContract, description);
+
+        const retrievedDescription = await contractManager.getDescription(mockContract);
+        expect(retrievedDescription).to.equal(description);
+    });
+
+    it("Should revert if the contract does not exist", async function () {
+        const { contractManager } = await loadFixture(deployContractManagerFixture);
+
+        const nonExistentContract = ethers.Wallet.createRandom().address;
+
+        await expect(
+            contractManager.getDescription(nonExistentContract)
+        ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
+    });
+
+    it("Should revert if the contract has been removed", async function () {
+        const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+        const description = "Contract to Remove";
+        await contractManager.connect(admin).addContract(mockContract, description);
+
+        // Remove the contract
+        await contractManager.connect(admin).removeContract(mockContract);
+
+        await expect(
+            contractManager.getDescription(mockContract)
+        ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
+    });
+
+
+});
   
   describe("Role Management", function () {
     it("Should allow an admin to grant ADMIN_ROLE to a user", async function () {
@@ -446,7 +517,29 @@ describe("ContractManager", function () {
       await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, user.address);
       expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.false;
     });
+    
+    it("Should only allow an admin to add and remove multiple users with ADMIN_ROLE", async function () {
+      const { contractManager, deployer, user, otherUser } = await loadFixture(deployContractManagerFixture);
   
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+  
+      // Add multiple users with ADMIN_ROLE
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, user.address);
+      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, otherUser.address);
+  
+      // Verify both users now have ADMIN_ROLE
+      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.true;
+      expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.true;
+  
+      // Revoke ADMIN_ROLE from both users
+      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, user.address);
+      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, otherUser.address);
+  
+      // Verify neither user has ADMIN_ROLE
+      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.false;
+      expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.false;
+    });
+
     it("Should revert if a non-admin tries to grant a role", async function () {
       const { contractManager, user, otherUser } = await loadFixture(deployContractManagerFixture);
     
@@ -478,27 +571,7 @@ describe("ContractManager", function () {
     });
     
   
-    it("Should only allow an admin to add and remove multiple users with ADMIN_ROLE", async function () {
-      const { contractManager, deployer, user, otherUser } = await loadFixture(deployContractManagerFixture);
-  
-      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
-  
-      // Add multiple users with ADMIN_ROLE
-      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, user.address);
-      await contractManager.connect(deployer).grantRole(ADMIN_ROLE, otherUser.address);
-  
-      // Verify both users now have ADMIN_ROLE
-      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.true;
-      expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.true;
-  
-      // Revoke ADMIN_ROLE from both users
-      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, user.address);
-      await contractManager.connect(deployer).revokeRole(ADMIN_ROLE, otherUser.address);
-  
-      // Verify neither user has ADMIN_ROLE
-      expect(await contractManager.hasRole(ADMIN_ROLE, user.address)).to.be.false;
-      expect(await contractManager.hasRole(ADMIN_ROLE, otherUser.address)).to.be.false;
-    });
+   
 
     
   });
