@@ -10,7 +10,7 @@ describe("ContractManager", function () {
 
     const ContractManager = await ethers.getContractFactory("ContractManager");
     const contractManager = await ContractManager.deploy(admin.address);
-    //await contractManager.deployed();
+    await contractManager.waitForDeployment();
 
     return { contractManager, deployer, admin, user,otherUser };
   }

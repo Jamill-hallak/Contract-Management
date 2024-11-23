@@ -3,11 +3,10 @@ pragma solidity ^0.8.20;
 
 import "./IContractManager.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title ContractManager
 /// @notice Manages storage, updating, and removal of contract addresses and descriptions
-contract ContractManager is IContractManager, AccessControl, UUPSUpgradeable {
+contract ContractManager is IContractManager, AccessControl {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     mapping(address => string) private descriptions;
@@ -84,8 +83,7 @@ contract ContractManager is IContractManager, AccessControl, UUPSUpgradeable {
         return interfaceId == type(IContractManager).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    /// @notice Authorizes upgrades (EIP-1967/UUPS)
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    
 
    
 }
