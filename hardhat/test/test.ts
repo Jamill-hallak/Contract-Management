@@ -269,6 +269,47 @@ describe("ContractManager", function () {
     ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
 
     });
+    it("Should revert if a non-admin tries to remove a contract", async function () {
+      const { contractManager, user, admin } = await loadFixture(deployContractManagerFixture);
+    
+      const contractAddress = ethers.Wallet.createRandom().address;
+      const description = "Test Contract";
+    
+      // Add a contract as admin
+      await contractManager.connect(admin).addContract(contractAddress, description);
+    
+      // Attempt to remove the contract as a non-admin
+      const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
+      await expect(contractManager.connect(user).removeContract(contractAddress))
+        .to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
+        .withArgs(user.address, ADMIN_ROLE); // Pass the account and the required role
+    });
+    
+  
+    it("Should revert if trying to remove a zero address", async function () {
+      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+  
+      await expect(contractManager.connect(admin).removeContract(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+        contractManager,
+        "ContractDoesNotExist"
+      );
+    });
+    it("Should clear the state after removing a contract", async function () {
+      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+  
+      const contractAddress = ethers.Wallet.createRandom().address;
+      const description = "Test Contract";
+  
+      await contractManager.connect(admin).addContract(contractAddress, description);
+      await contractManager.connect(admin).removeContract(contractAddress);
+  
+      // Ensure state is cleared
+      const descriptionExists = await contractManager
+        .getDescription(contractAddress)
+        .catch(() => false); // Catch revert and return false
+      expect(descriptionExists).to.be.false;
+    });
+  
   });
   
   describe("Role Management", function () {
