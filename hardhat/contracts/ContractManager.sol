@@ -28,12 +28,6 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
         _grantRole(ADMIN_ROLE, admin);
     }
 
-    //Optimize gas by replacing validateContract function with inline conditional checks
-
-
-
-
-
 
 
     /// @inheritdoc IContractManager

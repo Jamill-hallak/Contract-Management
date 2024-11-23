@@ -118,6 +118,16 @@ describe("ContractManager", function () {
       ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
 
+    it("Should revert if the address is not a deployed contract", async function () {
+      const { contractManager, admin } = await loadFixture(deployContractManagerFixture);
+  
+      const randomAddress = ethers.Wallet.createRandom().address;
+  
+      await expect(
+          contractManager.connect(admin).addContract(randomAddress, "Invalid Contract")
+      ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
+  });
+
     it("Should allow re-adding a contract after removal", async function () {
       const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
     
@@ -224,6 +234,22 @@ describe("ContractManager", function () {
       ).to.be.revertedWithCustomError(contractManager, "ContractAlreadyExists");
     });
 
+    it("Should revert if any address in the batch is not a deployed contract", async function () {
+      const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+      const randomAddress = ethers.Wallet.createRandom().address;
+      const contractAddresses = [
+        mockContract,
+        randomAddress,
+      ];
+      const descriptions = ["Contract 1", "Invalid Contract"];
+
+      await expect(
+        contractManager.connect(admin).addContracts(contractAddresses, descriptions)
+      ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
+    });
+
+
     it("Should compare gas usage for single vs batch additions", async function () {
       const { contractManager,mockContract, admin } = await loadFixture(deployContractManagerFixture);
     
@@ -251,7 +277,7 @@ describe("ContractManager", function () {
 
       // Total gas used for single additions
       const totalSingleGasUsed = singleGasUsed1+singleGasUsed2;
-      console.log("Total gas used for single additions:", totalSingleGasUsed.toString());
+      console.log("       Total gas used for single additions:", totalSingleGasUsed.toString());
     
       // Remove the contracts one by one
       await contractManager.connect(admin).removeContract(contractAddresses[0]);
@@ -261,7 +287,7 @@ describe("ContractManager", function () {
       const batchTx = await contractManager.connect(admin).addContracts(contractAddresses, descriptions);
       const batchReceipt = await batchTx.wait();
     
-      console.log("Gas used for batch addition:", batchReceipt.gasUsed.toString());
+      console.log("       Gas used for batch addition:", batchReceipt.gasUsed.toString());
     
       // Assertions for gas usage (optional)
       expect(batchReceipt.gasUsed).to.be.below(totalSingleGasUsed, "Batch addition should be more gas-efficient");
@@ -305,6 +331,21 @@ describe("ContractManager", function () {
         contractManager.connect(admin).updateDescription(contractAddress, "New Description")
       ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
 
+    });
+    it("Should revert if a non-admin tries to update the contract description", async function () {
+      const { contractManager, mockContract, admin, user } = await loadFixture(deployContractManagerFixture);
+
+      // Add contract with admin first
+      const description = "Initial Description";
+      await contractManager.connect(admin).addContract(mockContract, description);
+
+      const newDescription = "Unauthorized Update";
+
+      // Expect revert with custom error for unauthorized account
+      await expect(
+        contractManager.connect(user).updateDescription(mockContract, newDescription)
+      ).to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
+        .withArgs(user.address, ethers.id("ADMIN_ROLE")); // Pass the user and required role as args
     });
   });
 
@@ -355,7 +396,7 @@ describe("ContractManager", function () {
       const ADMIN_ROLE = await contractManager.ADMIN_ROLE();
       await expect(contractManager.connect(user).removeContract(mockContract))
         .to.be.revertedWithCustomError(contractManager, "AccessControlUnauthorizedAccount")
-        .withArgs(user.address, ADMIN_ROLE); // Pass the account and the required role
+        .withArgs(user.address, ADMIN_ROLE); 
     });
     
   
