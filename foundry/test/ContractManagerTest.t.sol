@@ -490,6 +490,43 @@ function testBatchAddEfficiencyComparison() public {
 }
 
 
+function testBatchAddRevertsOnEmptyDescription() public {
+    console.log("Testing if adding a batch with an empty description reverts...");
+
+    address[] memory addresses = new address[](2);
+    addresses[0] = address(mockContract1);
+    addresses[1] = address(mockContract2);
+
+    string[] memory descriptions = new string[](2);
+    descriptions[0] = "Contract 1";
+    descriptions[1] = "";
+
+    vm.prank(admin);
+    vm.expectRevert(abi.encodeWithSignature("EmptyDescription()"));
+    contractManager.addContracts(addresses, descriptions);
+}
+
+function testBatchAddRevertsOnOverLimitDescription() public {
+    console.log("Testing if adding a batch with an over-limit description reverts...");
+
+    address[] memory addresses = new address[](2);
+    addresses[0] = address(mockContract1);
+    addresses[1] = address(mockContract2);
+
+    string[] memory descriptions = new string[](2);
+    descriptions[0] = "Contract 1";
+     descriptions[1] = new string(257); // Create a 257-character string
+    vm.prank(admin);
+    vm.expectRevert(abi.encodeWithSelector(
+        bytes4(keccak256("DescriptionTooLong(uint256,uint256)")),
+        257, // Provided length
+        256  // Max allowed length
+    ));
+    contractManager.addContracts(addresses, descriptions);
+   
+}
+
+
 function testBatchAddRevertsWhenNonAdminCalls() public {
     console.log("Testing if a non-admin cannot add multiple contracts in a batch...");
 
@@ -511,26 +548,35 @@ function testBatchAddRevertsWhenNonAdminCalls() public {
     ));
     contractManager.addContracts(addresses, descriptions);
 }
-function testNonAdminCannotAddBatchContracts() public {
-    console.log("Testing if a non-admin cannot add multiple contracts in a batch...");
 
-    // Initialize dynamic arrays
-     address[] memory addresses = new address[](2);
-    addresses[0] = address(mockContract1);
-    addresses[1] = address(mockContract2);
 
-     string[] memory descriptions = new string[](2);
-    descriptions[0] = "Contract 1";
-    descriptions[1] = "Contract 2";
 
-    // Simulate user action (non-admin)
-    vm.prank(user);
-    vm.expectRevert(abi.encodeWithSelector(
-        bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
-        user,
-        keccak256("ADMIN_ROLE")
-    ));
-    contractManager.addContracts(addresses, descriptions);
+// === Get Description ===
+
+function testGetDescriptionForExistingContract() public {
+    console.log("Testing if the correct description is returned for an existing contract...");
+    vm.prank(admin);
+    contractManager.addContract(address(mockContract1), "Test Contract");
+
+    string memory description = contractManager.getDescription(address(mockContract1));
+    assertEq(description, "Test Contract", "Description should match the stored value");
+}
+
+function testGetDescriptionRevertsForNonExistentContract() public {
+    console.log("Testing if getting the description for a non-existent contract reverts...");
+    vm.expectRevert(abi.encodeWithSignature("ContractDoesNotExist()"));
+    contractManager.getDescription(address(mockContract1));
+}
+
+function testGetDescriptionRevertsForRemovedContract() public {
+    console.log("Testing if getting the description for a removed contract reverts...");
+    vm.prank(admin);
+    contractManager.addContract(address(mockContract1), "Test Contract");
+    vm.prank(admin);
+    contractManager.removeContract(address(mockContract1));
+
+    vm.expectRevert(abi.encodeWithSignature("ContractDoesNotExist()"));
+    contractManager.getDescription(address(mockContract1));
 }
 
 
