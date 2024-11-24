@@ -65,6 +65,7 @@ Clone the repository and install Foundry dependencies:
 ```bash
 git clone https://github.com/Jamill-hallak/Contract-Management.git
 cd ContractManager
+cd foundry
 forge install
 ```
 
