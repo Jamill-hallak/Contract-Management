@@ -48,7 +48,7 @@ contract ContractManagerTest is Test {
 
         vm.prank(deployer);
         // Assign admin role
-        contractManager.grantRole(ADMIN_ROLE, admin);
+    contractManager.grantRole(contractManager.DEFAULT_ADMIN_ROLE(), admin);
 
          
         
@@ -285,6 +285,73 @@ function testNonAdminCannotUpdateDescription() public {
     ));
     contractManager.updateDescription(address(mockContract1), "Unauthorized Update");
 }
+
+// === Role Management ===
+function testAdminCanGrantAdminRole() public {
+    console.log("Testing if an admin can grant ADMIN_ROLE to a user...");
+    vm.prank(admin);
+    contractManager.grantRole(ADMIN_ROLE, user);
+    assertTrue(contractManager.hasRole(ADMIN_ROLE, user), "User should have ADMIN_ROLE after it is granted by admin");
+}
+function testAdminCanRevokeAdminRole() public {
+    console.log("Testing if an admin can revoke ADMIN_ROLE from a user...");
+    vm.prank(admin);
+    contractManager.grantRole(ADMIN_ROLE, user);
+
+    vm.prank(admin);
+    contractManager.revokeRole(ADMIN_ROLE, user);
+
+    assertFalse(contractManager.hasRole(ADMIN_ROLE, user), "User should not have ADMIN_ROLE after it is revoked by admin");
+}
+function testAdminCanGrantAndRevokeRolesForMultipleUsers() public {
+    console.log("Testing if an admin can grant and revoke ADMIN_ROLE for multiple users...");
+    vm.prank(admin);
+    contractManager.grantRole(ADMIN_ROLE, user);
+    contractManager.grantRole(ADMIN_ROLE, otherUser);
+
+    assertTrue(contractManager.hasRole(ADMIN_ROLE, user), "User should have ADMIN_ROLE after grant");
+    assertTrue(contractManager.hasRole(ADMIN_ROLE, otherUser), "OtherUser should have ADMIN_ROLE after grant");
+
+    vm.prank(admin);
+    contractManager.revokeRole(ADMIN_ROLE, user);
+    contractManager.revokeRole(ADMIN_ROLE, otherUser);
+
+    assertFalse(contractManager.hasRole(ADMIN_ROLE, user), "User should not have ADMIN_ROLE after revoke");
+    assertFalse(contractManager.hasRole(ADMIN_ROLE, otherUser), "OtherUser should not have ADMIN_ROLE after revoke");
+}
+
+
+function testNonAdminCannotGrantAdminRole() public {
+    console.log("Testing if a non-admin cannot grant ADMIN_ROLE...");
+    vm.startPrank(user); // Persist `user` as the caller for subsequent calls
+    vm.expectRevert(abi.encodeWithSelector(
+        bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
+        user,
+        contractManager.DEFAULT_ADMIN_ROLE() // Correct role requirement
+    ));
+    contractManager.grantRole(ADMIN_ROLE, otherUser);
+    vm.stopPrank(); // Stop the prank to restore the original sender
+}
+
+function testNonAdminCannotRevokeAdminRole() public {
+    console.log("Testing if a non-admin cannot revoke ADMIN_ROLE...");
+
+    // Step 1: Grant ADMIN_ROLE to `user` by `admin`
+    vm.prank(admin);
+    contractManager.grantRole(ADMIN_ROLE, user);
+
+    // Step 2: Simulate `user` attempting to revoke their own ADMIN_ROLE
+    vm.startPrank(user); // Persist `user` as msg.sender for subsequent calls
+    vm.expectRevert(abi.encodeWithSelector(
+        bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
+        user, // Expected sender
+        contractManager.DEFAULT_ADMIN_ROLE() // Required role for revoking
+    ));
+    contractManager.revokeRole(ADMIN_ROLE, user);
+    vm.stopPrank(); // Restore the original sender
+}
+
+
 
 
 }
