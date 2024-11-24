@@ -61,8 +61,10 @@ This repository includes:
 **Gas Optimization**:
 - Validates input parameters with custom errors to save gas compared to `require`.
 - Avoids redundant mappings by using `bytes(description).length` for existence checks.
+
 **Security**:
 - Restricted to `ADMIN_ROLE` via OpenZeppelin’s `AccessControl`.
+
 **Events**: Emits `ContractAdded(address indexed contractAddress, string description)`.  
 **Errors**:
 - `InvalidAddress`: If the address is not a contract.
