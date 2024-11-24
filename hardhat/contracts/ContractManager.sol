@@ -21,6 +21,8 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
     error ContractAlreadyExists();
     error ContractDoesNotExist();
     error MismatchedInputLengths();
+    error DescriptionTooLong(uint256 providedLength, uint256 maxAllowed);
+    error EmptyDescription();
 
     /// @notice Constructor assigns admin roles and sets the trusted forwarder
     constructor(address admin) {
@@ -39,6 +41,8 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
     {
         if (contractAddress.code.length == 0) revert InvalidAddress(); // Not a contract
         if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
+        if (bytes(description).length == 0) revert EmptyDescription();
+        if (bytes(description).length > 256) revert DescriptionTooLong(bytes(description).length, 256);
 
         descriptions[contractAddress] = description;
         emit ContractAdded(contractAddress, description);
@@ -55,13 +59,15 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
         if (contractAddresses.length != descriptionsList.length) revert MismatchedInputLengths();
 
         for (uint256 i = 0; i < contractAddresses.length; i++) {
+          
             address contractAddress = contractAddresses[i];
             string calldata description = descriptionsList[i];
 
             if (contractAddress.code.length == 0) revert InvalidAddress(); // Not a contract
-
             if (bytes(descriptions[contractAddress]).length != 0) revert ContractAlreadyExists();
-
+            if (bytes(description).length == 0) revert EmptyDescription();
+            if (bytes(description).length > 256) revert DescriptionTooLong(bytes(description).length, 256);
+           
             descriptions[contractAddress] = description;
             emit ContractAdded(contractAddress, description);
         }
@@ -75,6 +81,8 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
         nonReentrant
     {
         if (bytes(descriptions[contractAddress]).length == 0) revert ContractDoesNotExist();
+        if (bytes(newDescription).length == 0) revert EmptyDescription();
+        if (bytes(newDescription).length > 256) revert DescriptionTooLong(bytes(newDescription).length, 256);
 
         descriptions[contractAddress] = newDescription;
         emit ContractUpdated(contractAddress, newDescription);

@@ -141,6 +141,29 @@ describe("ContractManager", function () {
           contractManager.connect(admin).addContract(randomAddress, "Invalid Contract")
       ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
   });
+
+  it("Should revert if the description is empty", async function () {
+    const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+    const emptyDescription = "";
+
+    await expect(
+        contractManager.connect(admin).addContract(mockContract, emptyDescription)
+    ).to.be.revertedWithCustomError(contractManager, "EmptyDescription");
+});
+
+it("Should revert if the description exceeds the maximum length", async function () {
+    const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+    const longDescription = "a".repeat(257); // 257 characters (1 more than the limit)
+
+    await expect(
+        contractManager.connect(admin).addContract(mockContract, longDescription)
+    ).to.be.revertedWithCustomError(contractManager, "DescriptionTooLong")
+        .withArgs(257, 256);
+});
+
+
   it("Should revert if a non-admin tries to add a contract", async function () {
     const { contractManager, mockContract, user } = await loadFixture(deployContractManagerFixture);
 
@@ -302,6 +325,40 @@ describe("ContractManager", function () {
         contractManager.connect(admin).addContracts(contractAddresses, descriptions)
       ).to.be.revertedWithCustomError(contractManager, "InvalidAddress");
     });
+
+
+    it("Should revert if one of the descriptions is empty", async function () {
+      const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+      const MockContract2 = await ethers.getContractFactory("MockContract");
+      const mockContract2 = await MockContract2.deploy();
+      await mockContract2.waitForDeployment();
+
+      const contractAddresses = [mockContract, mockContract2];
+      const descriptions = ["Valid Description", ""]; // One description is empty
+
+      await expect(
+          contractManager.connect(admin).addContracts(contractAddresses, descriptions)
+      ).to.be.revertedWithCustomError(contractManager, "EmptyDescription");
+  });
+
+  it("Should revert if one of the descriptions exceeds the maximum length", async function () {
+      const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+      const MockContract2 = await ethers.getContractFactory("MockContract");
+      const mockContract2 = await MockContract2.deploy();
+      await mockContract2.waitForDeployment();
+
+      const longDescription = "a".repeat(257); // 257 characters (1 more than the limit)
+      const contractAddresses = [mockContract, mockContract2];
+      const descriptions = ["Valid Description", longDescription]; // One description is too long
+
+      await expect(
+          contractManager.connect(admin).addContracts(contractAddresses, descriptions)
+      ).to.be.revertedWithCustomError(contractManager, "DescriptionTooLong")
+          .withArgs(257, 256);
+  });
+  
     it("Should revert if a non-admin tries to add multiple contracts in a batch", async function () {
       const { contractManager, mockContract, user } = await loadFixture(deployContractManagerFixture);
 
@@ -362,6 +419,38 @@ describe("ContractManager", function () {
       ).to.be.revertedWithCustomError(contractManager, "ContractDoesNotExist");
 
     });
+
+    it("Should revert if the new description is empty", async function () {
+      const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+      const description = "Initial Description";
+      const emptyDescription = "";
+
+      // Add a valid contract first
+      await contractManager.connect(admin).addContract(mockContract, description);
+
+      // Attempt to update with an empty description
+      await expect(
+          contractManager.connect(admin).updateDescription(mockContract, emptyDescription)
+      ).to.be.revertedWithCustomError(contractManager, "EmptyDescription");
+  });
+
+  it("Should revert if the new description exceeds the maximum length", async function () {
+      const { contractManager, mockContract, admin } = await loadFixture(deployContractManagerFixture);
+
+      const description = "Initial Description";
+      const longDescription = "a".repeat(257); // 257 characters (1 more than the limit)
+
+      // Add a valid contract first
+      await contractManager.connect(admin).addContract(mockContract, description);
+
+      // Attempt to update with a long description
+      await expect(
+          contractManager.connect(admin).updateDescription(mockContract, longDescription)
+      ).to.be.revertedWithCustomError(contractManager, "DescriptionTooLong")
+          .withArgs(257, 256); // Check the exact error arguments
+  });
+
     it("Should revert if a non-admin tries to update the contract description", async function () {
       const { contractManager, mockContract, admin, user } = await loadFixture(deployContractManagerFixture);
 
