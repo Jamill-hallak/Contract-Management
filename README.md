@@ -101,9 +101,11 @@ This repository includes:
 **Gas Optimization**:
 - Reuses the existing mapping without additional storage structures.
 - Custom error handling reduces gas consumption.
+
 **Security**:
 - Ensures only `ADMIN_ROLE` holders can update metadata.
 - Validates the existence of the contract before updates.
+
 **Events**: Emits `ContractUpdated(address indexed contractAddress, string newDescription)`.  
 **Errors**:
 - `ContractDoesNotExist`: If the contract is not registered.
@@ -116,9 +118,11 @@ This repository includes:
 **Purpose**: Removes a contract and its associated description.  
 **Gas Optimization**:
 - Deletes the entry directly, reducing storage overhead.
+
 **Security**:
 - Ensures only `ADMIN_ROLE` holders can remove metadata.
 - Validates the existence of the contract before deletion.
+
 **Events**: Emits `ContractRemoved(address indexed contractAddress)`.  
 **Errors**:
 - `ContractDoesNotExist`: If the contract is not registered.
@@ -126,11 +130,13 @@ This repository includes:
 ---
 
 ### 5. `getDescription(address contractAddress) external view returns (string memory)`
-**Purpose**: Retrieves the description of a registered contract.  
+**Purpose**: Retrieves the description of a registered contract. 
 **Gas Optimization**:
 - Performs direct lookups in the mapping with O(1) complexity.
+
 **Security**:
-- Fails gracefully with a revert if the contract is not registered.  
+- Fails gracefully with a revert if the contract is not registered.
+
 **Errors**:
 - `ContractDoesNotExist`: If the contract is not registered.
 
