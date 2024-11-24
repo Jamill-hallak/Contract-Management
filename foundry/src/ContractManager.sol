@@ -15,7 +15,7 @@ contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {
     event ContractAdded(address indexed contractAddress, string description);
     event ContractUpdated(address indexed contractAddress, string newDescription);
     event ContractRemoved(address indexed contractAddress);
-
+    
     // Custom Errors
     error InvalidAddress();
     error ContractAlreadyExists();
