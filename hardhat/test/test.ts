@@ -1,23 +1,31 @@
+//By Jamil hallack
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { calculateInterfaceId } from "./utils/calculateInterfaceId";
 
 
+// Main test suite for the ContractManager contract
 describe("ContractManager", function () {
+  /**
+   * Fixture for deploying the ContractManager contract and setting up necessary accounts.
+   * This ensures that each test starts with a clean and consistent environment.
+   */
   async function deployContractManagerFixture() {
-    const [deployer, admin, user,otherUser] = await ethers.getSigners();
+    // Retrieve test signers (accounts): deployer, admin, and other users.
+    const [deployer, admin, user, otherUser] = await ethers.getSigners();
 
+    // Deploy the ContractManager contract, initializing it with the admin's address.
     const ContractManager = await ethers.getContractFactory("ContractManager");
     const contractManager = await ContractManager.deploy(admin.address);
     await contractManager.waitForDeployment();
 
-    // Deploy a MockContract for testing
+    // Deploy a MockContract to simulate contract addresses in tests.
     const MockContract = await ethers.getContractFactory("MockContract");
     const mockContract = await MockContract.deploy();
     await mockContract.waitForDeployment();
 
-    return { contractManager,mockContract, deployer, admin, user,otherUser };
+    return { contractManager, mockContract, deployer, admin, user, otherUser };
   }
 
   describe("Deployment", function () {
@@ -658,12 +666,7 @@ it("Should revert if the description exceeds the maximum length", async function
         "AccessControlUnauthorizedAccount"
       ).withArgs(user.address, ethers.ZeroHash); // `DEFAULT_ADMIN_ROLE` is the required role
     });
-    
-  
-   
-
-    
+     
   });
-  
   
 });
