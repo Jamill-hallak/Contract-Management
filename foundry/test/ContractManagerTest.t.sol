@@ -339,6 +339,199 @@ function testCannotUpdateToOverLimitDescription() public {
         contractManager.updateDescription(address(mockContract1), "Unauthorized Update");
     }
 
+   // === Batch adding  === ///
+
+function testAdminCanAddMultipleContracts() public {
+    console.log("Testing if an admin can add multiple contracts in a batch...");
+
+   
+   
+     address[] memory addresses = new address[](2);
+     addresses[0] = address(mockContract1);
+     addresses[1] = address(mockContract2);
+
+    
+     string[] memory descriptions = new string[](2);
+     descriptions[0] = "Contract 1";
+     descriptions[1] = "Contract 2";
+
+    // Simulate admin action
+    vm.prank(admin);
+    contractManager.addContracts(addresses, descriptions);
+
+    // Assertions
+    assertEq(contractManager.getDescription(address(mockContract1)), "Contract 1", "Description of Contract 1 should match");
+    assertEq(contractManager.getDescription(address(mockContract2)), "Contract 2", "Description of Contract 2 should match");
+}
+
+function testEmitContractAddedEventsForBatch() public {
+    console.log("Testing if ContractAdded events are emitted for each contract in a batch...");
+
+     address[] memory addresses = new address[](2);
+     addresses[0] = address(mockContract1);
+     addresses[1] = address(mockContract2);
+
+    
+     string[] memory descriptions = new string[](2);
+     descriptions[0] = "Contract 1";
+     descriptions[1] = "Contract 2";
+
+    // Expect the events
+    vm.prank(admin);
+    vm.expectEmit(true, true, true, true);
+    emit ContractAdded(address(mockContract1), "Contract 1");
+    emit ContractAdded(address(mockContract2), "Contract 2");
+
+    // Simulate admin action
+    contractManager.addContracts(addresses, descriptions);
+}
+
+function testBatchAddRevertsOnMismatchedInputLengths() public {
+    console.log("Testing if adding contracts in a batch with mismatched input lengths reverts...");
+   
+   
+     address[] memory addresses = new address[](2);
+     addresses[0] = address(mockContract1);
+     addresses[1] = address(mockContract2);
+
+    
+     string[] memory descriptions = new string[](3);
+     descriptions[0] = "Contract 1";
+     descriptions[1] = "Contract 2";
+     descriptions[2] = "Contract 3";
+
+    // Simulate admin action
+    vm.prank(admin);
+    vm.expectRevert(abi.encodeWithSignature("MismatchedInputLengths()"));
+    contractManager.addContracts(addresses, descriptions);
+}
+
+function testBatchAddRevertsOnInvalidAddress() public {
+    console.log("Testing if adding contracts in a batch with an invalid address reverts...");
+
+    address[] memory addresses = new address[](2);
+     addresses[0] = address(mockContract1);
+     addresses[1] = address(0);
+
+    
+     string[] memory descriptions = new string[](2);
+     descriptions[0] = "Contract 1";
+     descriptions[1] = "Invalid Address";
+
+    // Simulate admin action
+    vm.prank(admin);
+    vm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
+    contractManager.addContracts(addresses, descriptions);
+}
+
+function testBatchAddRevertsOnDuplicateContracts() public {
+    console.log("Testing if adding duplicate contracts in a batch reverts...");
+
+     address[] memory addresses = new address[](2);
+     addresses[0] = address(mockContract1);
+     addresses[1] = address(mockContract1);
+
+    
+     string[] memory descriptions = new string[](2);
+     descriptions[0] = "Contract 1";
+     descriptions[1] = "Duplicate Contract";
+
+    // Simulate admin action
+    vm.prank(admin);
+    vm.expectRevert(abi.encodeWithSignature("ContractAlreadyExists()"));
+    contractManager.addContracts(addresses, descriptions);
+}
+
+function testBatchAddEfficiencyComparison() public {
+    console.log("Testing gas efficiency of batch addition vs single additions...");
+
+    // Initialize dynamic arrays
+    address[] memory addresses = new address[](2);
+    addresses[0] = address(mockContract1);
+    addresses[1] = address(mockContract2);
+
+    string[] memory descriptions = new string[](2);
+    descriptions[0] = "Contract 1";
+    descriptions[1] = "Contract 2";
+
+    // Measure gas for single additions
+    uint256 gasBeforeSingle = gasleft();
+    vm.prank(admin);
+    contractManager.addContract(addresses[0], descriptions[0]);
+    uint256 gasAfterSingle1 = gasleft();
+
+    // Remove the first contract after adding
+    vm.prank(admin);
+    contractManager.removeContract(addresses[0]);
+
+    vm.prank(admin);
+    contractManager.addContract(addresses[1], descriptions[1]);
+    uint256 gasAfterSingle2 = gasleft();
+
+    // Remove the second contract after adding
+    vm.prank(admin);
+    contractManager.removeContract(addresses[1]);
+
+    uint256 gasUsedForSingleAdditions = (gasBeforeSingle - gasAfterSingle1) + (gasAfterSingle1 - gasAfterSingle2);
+
+    // Measure gas for batch addition
+    uint256 gasBeforeBatch = gasleft();
+    vm.prank(admin);
+    contractManager.addContracts(addresses, descriptions);
+    uint256 gasAfterBatch = gasleft();
+
+    uint256 gasUsedForBatchAddition = gasBeforeBatch - gasAfterBatch;
+
+    console.log("Gas used for single additions:", gasUsedForSingleAdditions);
+    console.log("Gas used for batch addition:", gasUsedForBatchAddition);
+
+    // Assert that batch addition is more gas efficient
+    assertTrue(gasUsedForBatchAddition < gasUsedForSingleAdditions, "Batch addition should be more gas efficient");
+}
+
+
+function testBatchAddRevertsWhenNonAdminCalls() public {
+    console.log("Testing if a non-admin cannot add multiple contracts in a batch...");
+
+     address[] memory addresses = new address[](2);
+     addresses[0] = address(mockContract1);
+     addresses[1] = address(mockContract2);
+
+    
+     string[] memory descriptions = new string[](2);
+     descriptions[0] = "Contract 1";
+     descriptions[1] = "Contract 2";
+
+    // Simulate non-admin action
+    vm.prank(user);
+    vm.expectRevert(abi.encodeWithSelector(
+        bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
+        user,
+        keccak256("ADMIN_ROLE")
+    ));
+    contractManager.addContracts(addresses, descriptions);
+}
+function testNonAdminCannotAddBatchContracts() public {
+    console.log("Testing if a non-admin cannot add multiple contracts in a batch...");
+
+    // Initialize dynamic arrays
+     address[] memory addresses = new address[](2);
+    addresses[0] = address(mockContract1);
+    addresses[1] = address(mockContract2);
+
+     string[] memory descriptions = new string[](2);
+    descriptions[0] = "Contract 1";
+    descriptions[1] = "Contract 2";
+
+    // Simulate user action (non-admin)
+    vm.prank(user);
+    vm.expectRevert(abi.encodeWithSelector(
+        bytes4(keccak256("AccessControlUnauthorizedAccount(address,bytes32)")),
+        user,
+        keccak256("ADMIN_ROLE")
+    ));
+    contractManager.addContracts(addresses, descriptions);
+}
 
 
 
