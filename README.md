@@ -77,12 +77,22 @@ This repository includes:
 **Gas Optimization**:
 - Batch processing reduces the total gas cost compared to individual additions.
 - Emits one event per contract in the loop for off-chain traceability without compromising efficiency.
+
 **Security**:
 - Restricted to `ADMIN_ROLE`.
 - Input arrays are validated for matching lengths to prevent data inconsistencies.
+
 **Events**: Emits multiple `ContractAdded` events.  
 **Errors**:
-- `MismatchedInputLengths`: If the arrays are not of equal length.
+  
+- `MismatchedInputLengths`: Arrays contractAddresses and descriptionsList have different lengths.
+- `InvalidAddress`: An address in contractAddresses is not a deployed contract.
+- `ContractAlreadyExists`: The address is already registered with a description.
+- `EmptyDescription`: A description in descriptionsList is empty.
+- `DescriptionTooLong(uint256 actual, uint256 maxLength)`: A description exceeds 256 characters.
+
+
+
 
 ---
 
