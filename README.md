@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 
 # ContractManager
 
@@ -476,4 +475,3 @@ Flexibility and usability outweigh the minor gas savings of `bytes32`, making `s
 ## License
 
 This project is licensed under the MIT License.
->>>>>>> a0732d538c7616effb5ab77c8ed944d6104d19cf
