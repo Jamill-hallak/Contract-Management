@@ -118,6 +118,51 @@ forge script script/DeployContractManager.s.sol --fork-url http://127.0.0.1:8545
 
 ---
 
+### 2. Compile Contracts using Makefile
+
+Build the smart contracts:
+```bash
+make build
+```
+
+### 3. Run Tests using Makefile
+
+Run tests and analyze gas usage:
+```bash
+make test
+```
+
+### 4. Deploy Contracts using Makefile
+
+Use the `Makefile` for streamlined deployment:
+- **To Anvil** (local network):
+  ```bash
+  make deploy-anvil
+  ```
+- **To Sepolia**:
+  ```bash
+  make deploy-sepolia
+  ```
+- **To Mainnet**:
+  ```bash
+  make deploy-mainnet
+  ```
+
+Environment variables in `.env` manage sensitive data:
+```env
+PRIVATE_KEY=your_private_key
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
+MAINNET_RPC_URL=https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID
+```
+
+### 5. Clean Artifacts
+
+Remove compiled artifacts:
+```bash
+make clean
+```
+
+---
 ## Testing Summary
 
 The Foundry test suite validates:
