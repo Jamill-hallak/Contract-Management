@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title ContractManager
+///@author Jamil Hallack
 /// @notice Manages storage, updating, and removal of contract addresses and descriptions.
 /// @dev Uses OpenZeppelin's AccessControl for role-based access and ReentrancyGuard for security against reentrancy attacks.
 contract ContractManager is IContractManager, AccessControl, ReentrancyGuard {

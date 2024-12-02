@@ -4,6 +4,7 @@
 pragma solidity ^0.8.20;
 
 /// @title IContractManager Interface
+///@author Jamil Hallack
 /// @notice Interface for managing contract addresses and their descriptions
 interface IContractManager {
     function addContract(address contractAddress, string calldata description) external;

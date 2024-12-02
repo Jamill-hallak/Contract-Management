@@ -16,10 +16,11 @@ This folder contains the **Hardhat implementation** of the `ContractManager` sma
   - [Folder Structure](#folder-structure)
   - [Requirements](#requirements)
   - [How to Use](#how-to-use)
-    - [1. Compile Contracts](#1-compile-contracts)
-    - [2. Run Tests](#2-run-tests)
-    - [3. Deploy Contract](#3-deploy-contract)
-    - [4. Debugging](#4-debugging)
+    - [1. Clone the Repository](#1-clone-the-repository)
+    - [2. Compile Contracts](#2-compile-contracts)
+    - [3. Run Tests](#3-run-tests)
+    - [4. Deploy Contract](#4-deploy-contract)
+    - [5. Debugging](#5-debugging)
   - [Testing Summary](#testing-summary)
   - [Notes](#notes)
 
@@ -54,17 +55,21 @@ Before using this repository, ensure the following are installed:
 - **npm**: Version 7 or later (Check with `npm --version`).
 - **Hardhat**: Installed as a local dependency in the project.
 
-Install all dependencies using:
+## How to Use
+
+### 1. Clone the Repository
+
+Clone the repository and navigate to the Hardhat implementation directory:
 
 ```bash
+git clone https://github.com/Jamill-hallak/Contract-Management
+cd Contract-Management
+cd hardhat
 npm install
 ```
 
----
 
-## How to Use
-
-### 1. Compile Contracts
+### 2. Compile Contracts
 
 Compile the Solidity contracts using Hardhat:
 
@@ -72,7 +77,7 @@ Compile the Solidity contracts using Hardhat:
 npx hardhat compile
 ```
 
-### 2. Run Tests
+### 3. Run Tests
 
 Execute the test suite to validate functionality, access control, and gas efficiency:
 
@@ -91,7 +96,7 @@ npx hardhat test
       ...
 ```
 
-### 3. Deploy Contract
+### 4. Deploy Contract
 
 - Update `scripts/deployContractManager.ts` to set the desired `admin` address.
 - Deploy the contract to a local or specified network:
@@ -106,7 +111,7 @@ For local deployment (e.g., Hardhat node):
 npx hardhat run scripts/deployContractManager.ts --network localhost
 ```
 
-### 4. Debugging
+### 5. Debugging
 
 Use Hardhat's console for debugging:
 
